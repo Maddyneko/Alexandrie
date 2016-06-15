@@ -1,0 +1,1 @@
+<textarea id="|*NOM*|" name="|*NOM*|" class="form-control |*CLASSE*|" rows="3"></textarea>
