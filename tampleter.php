@@ -51,6 +51,8 @@ foreach($bdd_classes as $categorie => $elements_classe){
 	foreach($elements_classe as $classe){
 		$variables = array();
 		creerFichier($bdd, $classe, 'php', $chemin_categorie, $categorie, 'classe');
+		creerFichier($bdd, $classe . 's', 'php', $chemin_categorie, $categorie, 'classes');
+
 	}
 
 }
@@ -118,8 +120,28 @@ function creerFichier($bdd, $nom, $extension, $chemin, $categorie, $template='')
 				$contenu = templateClasse($bdd, $nom, $categorie);
 				fputs($fichier, $contenu);
 			break;
+			case 'classes' :
+				$contenu = templateClasses($bdd, $nom, $categorie);
+				fputs($fichier, $contenu);
+			break;
 			case 'element' :
 				$contenu = templatePageElement($bdd, $nom, $categorie, $categorie);
+				fputs($fichier, $contenu);
+			break;
+			case 'elements' :
+				$contenu = templatePageElements($bdd, $nom, $categorie, $categorie);
+				fputs($fichier, $contenu);
+			break;
+			case 'addform' :
+				$contenu = templateFormAdd($bdd, $nom, $categorie, $categorie);
+				fputs($fichier, $contenu);
+			break;
+			case 'editform' :
+				$contenu = templateFormEdit($bdd, $nom, $categorie, $categorie);
+				fputs($fichier, $contenu);
+			break;
+			case 'delform' :
+				$contenu = templateFormDel($bdd, $nom, $categorie, $categorie);
 				fputs($fichier, $contenu);
 			break;
 		}
@@ -149,6 +171,7 @@ function templateClasse($bdd, $classe, $categorie){
 
 	$nomClasse = ucfirst(strtolower($classe));
 	
+	$getters = $getters . "\tpublic function getDesignation(){\n\t\treturn \"Un élément\";\n\t}";
 	foreach($liste_fields as $field){
 		$variables = $variables . "\tprivate $" . $field .";\n";
 		$getters = $getters . "\tpublic function get". $field . "(){\n"
@@ -204,8 +227,8 @@ function templateClasse($bdd, $classe, $categorie){
 }
 function templateClasses($bdd, $classe, $categorie){
 	$contenu = '';
-	$contenu = file_get_contents ('templates/classes.php');
-	$table = $categorie . "_" . $classe . "_t";
+	$contenu = file_get_contents ('templates/classe.php');
+	$table = $categorie . "_" . substr ($classe, 0, -1) . "_t";
 	$requete = "SHOW columns from " . $table;
 
 	$liste_fields = array();
@@ -217,15 +240,15 @@ function templateClasses($bdd, $classe, $categorie){
 	$variables = "";
 	$getters = "";
 	$setters = "";
-	$base = "";
+	$bdd_base = "";
 	$bddDetail = "";
 	$setElement = "" ;
 
-	$nomClasse = ucfirst(strtolower($classe)) . "s";
+	$nomClasse = ucfirst(strtolower($classe));
 
-	$variables = "private \$" . $nomClasse . "s";
+	$variables = "private \$" . $nomClasse;
 
-	$getters = "\tpublic function get". $nomClasse . "s(){\n"
+	$getters = "\tpublic function get". $nomClasse . "(){\n"
 		."\t\treturn \$this->" . $nomClasse . ";\n"
 		. "\t}\n\n"
 		;
@@ -234,7 +257,7 @@ function templateClasses($bdd, $classe, $categorie){
         . "\t\tforeach (\$bdd->query(\$requete) as \$stmt){\n"
         . "\t\t\t\$".$classe." = new ". $nomClasse ."();\n"
         . "\t\t\t\$".$classe."->set". $nomClasse ."(\$stmt);\n"
-        . "\t\t\t\$this->" .$classe."s[] = \$".$classe.";\n"
+        . "\t\t\t\$this->" .$nomClasse."[] = \$".$classe.";\n"
         . "\t\t}\n"
    		. "\t}\n"
    		;
@@ -243,10 +266,11 @@ function templateClasses($bdd, $classe, $categorie){
 	$contenu = str_replace('|*VARIABLES*|', $variables, $contenu);
 	$contenu = str_replace('|*GETTERS*|', $getters, $contenu);
 	$contenu = str_replace('|*SETTERS*|', $setters, $contenu);
-	$contenu = str_replace('|*BDD*|', $base, $contenu);
+	$contenu = str_replace('|*BDD*|', $bdd_base, $contenu);
 	$contenu = str_replace('|*BDDDETAIL*|', $bddDetail, $contenu);
 	$contenu = str_replace('|*SETELEMENT*|', $setElement, $contenu);
 
+	return $contenu;
 }
 function templatePageElement($bdd, $classe, $categorie, $datas){
 	$contenu = '';
@@ -290,9 +314,9 @@ function templatePageElement($bdd, $classe, $categorie, $datas){
 		. "?>"
 		;
 	foreach($liste_fields as $field){
-		$body = $body . "<p>"
-			. "<?php echo \$" . $classe . "->get" . $field . "(); ?>"
-			."</p>\n"
+		$body = $body . "\t<p>"
+			. "\t\t<?php echo \$" . $classe . "->get" . $field . "(); ?>"
+			."\t</p>\n"
 			;
 	}
 	$contenu = str_replace('|*CSS*|', $css, $contenu);
@@ -304,3 +328,221 @@ function templatePageElement($bdd, $classe, $categorie, $datas){
 	return $contenu;
 }
 
+	function templatePageElements($bdd, $classe, $categorie){
+		$contenu = '';
+		$contenu = file_get_contents ('templates/page.php');
+	$table = $categorie . "_" . substr ($classe, 0, -1) . "_t";
+		$nomClasse = ucfirst(strtolower($classe));
+
+		$requete = "SHOW columns from " . $table;
+		$liste_fields = array();
+		foreach($bdd->query($requete) as $stmt){
+			$liste_fields[] = $stmt['Field'];
+		}
+
+		$php = "";
+		$title = "";
+		$body = "";
+		$css = "";
+		$js = "";
+
+		$css = DIR_CSS;
+		$js = DIR_JAVASCRIPT;
+		$title = ''; //$datas['title'];
+
+
+		//On récupère les colonnes de la table
+		$requete = "SHOW columns from " . $table;
+		$liste_fields = array();
+		foreach($bdd->query($requete) as $stmt){
+			$liste_fields[] = $stmt['Field'];
+		}
+		
+		$php = $php . "<?php"
+			. "\t\$". $classe . " = new " . $nomClasse . "();\n"
+			. "\t\$". $classe . "->set" . $nomClasse . "();\n"
+			. "?>"
+			;
+		foreach($liste_fields as $field){
+			$body = $body . "<?php "
+				. "\tforeach(\$". $classe . "->get" . $nomClasse . "() as \$element) { ?>\n"
+				. "\t\t<p><?php echo \$element->getDesignation(); ?></p>\n"
+				. "\t<?php } ?>\n"
+				;
+		}
+		$contenu = str_replace('|*CSS*|', $css, $contenu);
+		$contenu = str_replace('|*JS*|', $js, $contenu);
+		$contenu = str_replace('|*TITLE*|', $title, $contenu);
+		$contenu = str_replace('|*BODY*|', $body, $contenu);
+		$contenu = str_replace('|*PHP*|', $php, $contenu);
+
+		return $contenu;
+	}
+
+function templateFormAdd($bdd, $classe, $categorie, $datas){
+	$contenu = '';
+	$contenu = file_get_contents ('templates/page.php');
+	$table = $categorie . "_" . $classe . "_t";
+	$nomClasse = ucfirst(strtolower($classe));
+
+	$requete = "SHOW columns from " . $table;
+	$liste_fields = array();
+	foreach($bdd->query($requete) as $stmt){
+		$liste_fields[] = $stmt['Field'];
+	}
+
+	$php = "";
+	$title = "";
+	$body = "";
+	$css = "";
+	$js = "";
+
+	$css = DIR_CSS;
+	$js = DIR_JAVASCRIPT;
+	$title = ''; //$datas['title'];
+
+	$requete = "SHOW columns from " . $table;
+	$liste_fields = array();
+	foreach($bdd->query($requete) as $stmt){
+		$liste_fields[] = $stmt['Field'];
+	}
+	
+	$php = $php . "<?php"
+		. "\$idElement = '';\n"
+		. "\tif(isset(\$GET_['id'])){\n"
+		. "\t\t\$idElement = \$GET_['id'];\n"
+		. "\t}\n"
+		. "\telse{\n"
+		. "\t\theader('Location:index.php');"
+		. "\t}\n"
+		. "\t\$" . $classe . " = new " . $nomClasse . "();\n"
+		. "\t\$". $classe . "->setId(\$idElement);\n"
+		. "\t\$" . $classe . "->get" . $nomClasse . "();\n"
+		. "?>"
+		;
+	foreach($liste_fields as $field){
+		$body = $body . "\t<p>"
+			. "\t\t<?php echo \$" . $classe . "->get" . $field . "(); ?>"
+			."\t</p>\n"
+			;
+	}
+	$contenu = str_replace('|*CSS*|', $css, $contenu);
+	$contenu = str_replace('|*JS*|', $js, $contenu);
+	$contenu = str_replace('|*TITLE*|', $title, $contenu);
+	$contenu = str_replace('|*BODY*|', $body, $contenu);
+	$contenu = str_replace('|*PHP*|', $php, $contenu);
+
+	return $contenu;
+}
+
+function templateFormEdit($bdd, $classe, $categorie, $datas){
+	$contenu = '';
+	$contenu = file_get_contents ('templates/page.php');
+	$table = $categorie . "_" . $classe . "_t";
+	$nomClasse = ucfirst(strtolower($classe));
+
+	$requete = "SHOW columns from " . $table;
+	$liste_fields = array();
+	foreach($bdd->query($requete) as $stmt){
+		$liste_fields[] = $stmt['Field'];
+	}
+
+	$php = "";
+	$title = "";
+	$body = "";
+	$css = "";
+	$js = "";
+
+	$css = DIR_CSS;
+	$js = DIR_JAVASCRIPT;
+	$title = ''; //$datas['title'];
+
+	$requete = "SHOW columns from " . $table;
+	$liste_fields = array();
+	foreach($bdd->query($requete) as $stmt){
+		$liste_fields[] = $stmt['Field'];
+	}
+	
+	$php = $php . "<?php"
+		. "\$idElement = '';\n"
+		. "\tif(isset(\$GET_['id'])){\n"
+		. "\t\t\$idElement = \$GET_['id'];\n"
+		. "\t}\n"
+		. "\telse{\n"
+		. "\t\theader('Location:index.php');"
+		. "\t}\n"
+		. "\t\$" . $classe . " = new " . $nomClasse . "();\n"
+		. "\t\$". $classe . "->setId(\$idElement);\n"
+		. "\t\$" . $classe . "->get" . $nomClasse . "();\n"
+		. "?>"
+		;
+	foreach($liste_fields as $field){
+		$body = $body . "\t<p>"
+			. "\t\t<?php echo \$" . $classe . "->get" . $field . "(); ?>"
+			."\t</p>\n"
+			;
+	}
+	$contenu = str_replace('|*CSS*|', $css, $contenu);
+	$contenu = str_replace('|*JS*|', $js, $contenu);
+	$contenu = str_replace('|*TITLE*|', $title, $contenu);
+	$contenu = str_replace('|*BODY*|', $body, $contenu);
+	$contenu = str_replace('|*PHP*|', $php, $contenu);
+
+	return $contenu;
+}
+
+function templateFormDel($bdd, $classe, $categorie, $datas){
+	$contenu = '';
+	$contenu = file_get_contents ('templates/page.php');
+	$table = $categorie . "_" . $classe . "_t";
+	$nomClasse = ucfirst(strtolower($classe));
+
+	$requete = "SHOW columns from " . $table;
+	$liste_fields = array();
+	foreach($bdd->query($requete) as $stmt){
+		$liste_fields[] = $stmt['Field'];
+	}
+
+	$php = "";
+	$title = "";
+	$body = "";
+	$css = "";
+	$js = "";
+
+	$css = DIR_CSS;
+	$js = DIR_JAVASCRIPT;
+	$title = ''; //$datas['title'];
+
+	$requete = "SHOW columns from " . $table;
+	$liste_fields = array();
+	foreach($bdd->query($requete) as $stmt){
+		$liste_fields[] = $stmt['Field'];
+	}
+	
+	$php = $php . "<?php"
+		. "\$idElement = '';\n"
+		. "\tif(isset(\$GET_['id'])){\n"
+		. "\t\t\$idElement = \$GET_['id'];\n"
+		. "\t}\n"
+		. "\telse{\n"
+		. "\t\theader('Location:index.php');"
+		. "\t}\n"
+		. "\t\$" . $classe . " = new " . $nomClasse . "();\n"
+		. "\t\$". $classe . "->setId(\$idElement);\n"
+		. "\t\$" . $classe . "->get" . $nomClasse . "();\n"
+		. "?>"
+		;
+	foreach($liste_fields as $field){
+		$body = $body . "\t<p>"
+			. "\t\t<?php echo \$" . $classe . "->get" . $field . "(); ?>"
+			."\t</p>\n"
+			;
+	}
+	$contenu = str_replace('|*CSS*|', $css, $contenu);
+	$contenu = str_replace('|*JS*|', $js, $contenu);
+	$contenu = str_replace('|*TITLE*|', $title, $contenu);
+	$contenu = str_replace('|*BODY*|', $body, $contenu);
+	$contenu = str_replace('|*PHP*|', $php, $contenu);
+
+	return $contenu;
+}
