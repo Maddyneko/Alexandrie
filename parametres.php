@@ -9,7 +9,10 @@ define("BDD_mdp", "");
 define("TMPLT_RESSOURCES", "templates/ressources");
 
 //Nom des dossiers du site
-define("DIR_RACINE", "site");
+
+define("SITE_DOMAINE", "C:\wamp64\www\alexandrie");
+
+define("DIR_RACINE", "alexandrie");
 define("DIR_CSS", "style");
 define("DIR_JAVASCRIPT", "javascript");
 define("DIR_CLASSES", "classes");

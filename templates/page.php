@@ -1,3 +1,4 @@
+<?php include_once('|*DOMAINE*|/config/parametres.php'); ?>
 |*PHP*|
 <!DOCTYPE html>
 <html lang="fr">
@@ -9,18 +10,17 @@
     <title>|*TITLE*|</title>
 
     <!-- Bootstrap -->
-    <link href="|*CSS*|/bootstrap.min.css" rel="stylesheet">
-    <link href="|*CSS*|/style.css" rel="stylesheet">
+    <?php include_once('|*DOMAINE*|/layout/styles.php'); ?>
 
   </head>
   <body>
+    <?php include_once('|*DOMAINE*|/layout/header.php'); ?>
+    <?php include_once('|*DOMAINE*|/layout/menu.php'); ?>
+
     |*BODY*|
 
 
-    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
-	   <script src="|*JS*|/jquery.js"></script>
+  <?php include_once('|*DOMAINE*|/layout/javascript.php'); ?>
 
-    <!-- Include all compiled plugins (below), or include individual files as needed -->
-    <script src="|*JS*|/bootstrap.min.js"></script>
   </body>
 </html>
